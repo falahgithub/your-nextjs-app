@@ -11,3 +11,8 @@ phases:
     commands:
       - echo "Building the Next.js app..."
       - npm run build
+
+artifacts:    # ← NEW: This tells CodeBuild what to save
+  files:
+    - '**/*'     # Save everything (for now)
+  base-directory: .next   # Only save the built output fold

@@ -5,7 +5,7 @@ phases:
       nodejs: 20    # ⚠️ Your original had 25 — AWS doesn't support that yet!
     commands:
       - echo "Installing dependencies..."
-      - npm ci    # 'ci' is better than 'install' — it uses package-lock.json exactly
+      # - npm ci    # 'ci' is better than 'install' — it uses package-lock.json exactly
   
   build:
     commands:

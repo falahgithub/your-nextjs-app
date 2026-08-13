@@ -1,39 +1,68 @@
+# version: 0.2
+# env:
+#   variables:
+#     # AWS_DEFAULT_REGION: us-east-1
+#     # AWS_ACCOUNT_ID: 123456789012
+#     REPOSITORY_URI: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME
+
+# phases:
+#   install:
+#     runtime-versions:
+#       nodejs: 20
+#     commands:
+#       - npm ci
+  
+#   pre_build:    # ← NEW: Separate phase for setup/auth
+#     commands:
+#       - echo "Logging into ECR..."
+#       - echo $AWS_ACCOUNT_ID
+#       - echo $AWS_REGION
+#       - echo $REPOSITORY_URI
+
+#       # Step 1: Get a temporary password from AWS
+#       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+  
+#   build:
+#     commands:
+#       - npm run build
+#       - echo "Building Docker image..."
+#       - docker build -t $REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+
+#   post_build:
+#     commands:
+#       - echo "Pushing to ECR..."
+#       - docker push $REPOSITORY_URI:latest
+
+# artifacts:
+#   files:
+#     - '**/*'
+#   base-directory: .next
+
+
+
 version: 0.2
-env:
-  variables:
-    # AWS_DEFAULT_REGION: us-east-1
-    # AWS_ACCOUNT_ID: 123456789012
-    REPOSITORY_URI: $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME
 
 phases:
-  install:
-    runtime-versions:
-      nodejs: 20
-    commands:
-      - npm ci
-  
-  pre_build:    # ← NEW: Separate phase for setup/auth
+
+  pre_build:
     commands:
       - echo "Logging into ECR..."
-      - echo $AWS_ACCOUNT_ID
-      - echo $AWS_REGION
-      - echo $REPOSITORY_URI
-      
-      # Step 1: Get a temporary password from AWS
-      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-  
+      - echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID"
+      - echo "AWS_REGION=$AWS_REGION"
+      - echo "IMAGE_REPO_NAME=$IMAGE_REPO_NAME"
+
+      - export REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME"
+
+      - echo "REPOSITORY_URI=$REPOSITORY_URI"
+
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
   build:
     commands:
-      - npm run build
       - echo "Building Docker image..."
-      - docker build -t $REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+      - docker build -t "$REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION" .
 
   post_build:
     commands:
-      - echo "Pushing to ECR..."
-      - docker push $REPOSITORY_URI:latest
-
-artifacts:
-  files:
-    - '**/*'
-  base-directory: .next
+      - echo "Pushing Docker image..."
+      - docker push "$REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION"

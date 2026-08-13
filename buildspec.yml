@@ -1,18 +1,28 @@
 version: 0.2
+env:
+  variables:
+    # AWS_DEFAULT_REGION: us-east-1
+    # AWS_ACCOUNT_ID: 123456789012
+    REPOSITORY_URI: $(AWS_ACCOUNT_ID).dkr.ecr.us-east-1.amazonaws.com/$(IMAGE_REPO_NAME)
+    echo "REPOSITORY_URI: $REPOSITORY_URI"
+
 phases:
   install:
     runtime-versions:
-      nodejs: 20    # ⚠️ Your original had 25 — AWS doesn't support that yet!
+      nodejs: 20
     commands:
-      - echo "Installing dependencies..."
-      - npm ci    # 'ci' is better than 'install' — it uses package-lock.json exactly
+      - npm ci
+  
+  pre_build:    # ← NEW: Separate phase for setup/auth
+    commands:
+      - echo "Logging into ECR..."
+      # Step 1: Get a temporary password from AWS
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
   
   build:
     commands:
-      - echo "Building the Next.js app..."
       - npm run build
-
-artifacts:    # ← NEW: This tells CodeBuild what to save
-  files:
-    - '**/*'     # Save everything (for now)
-  base-directory: .next   # Only save the built output fold
+      - echo "Building Docker image..."
+      - docker build -t $REPOSITORY_URI:$(IMAGE_TAG) .
+      - echo "Pushing to ECR..."
+      - docker push $REPOSITORY_URI:$(IMAGE_TAG)
